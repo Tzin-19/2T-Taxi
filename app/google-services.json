@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "873431185969",
+    "project_id": "taxibookingapp-58cd8",
+    "storage_bucket": "taxibookingapp-58cd8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:873431185969:android:cc616321c37fbfbdb57310",
+        "android_client_info": {
+          "package_name": "com.example.taxibookingproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCn4zkL9oDO7QTQ3e6rKQQFGdqUsQ8XSU0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
