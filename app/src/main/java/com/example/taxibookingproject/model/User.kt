@@ -9,5 +9,5 @@ data class User(
     val carModel: String? = null,
     val plateNumber: String? = null,
     val rating: Double = 5.0,
-    val isLocked: Boolean = false // Dùng cho AdminController
+    val isLocked: Boolean = false // Cực kỳ quan trọng để đồng nhất với AdminController
 )

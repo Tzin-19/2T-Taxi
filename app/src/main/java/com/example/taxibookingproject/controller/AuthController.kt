@@ -8,70 +8,60 @@ class AuthController {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance()
 
-    // 1. HÀM ĐĂNG KÝ TÀI KHOẢN (Đã cập nhật Model mới)
-    fun registerUser(
-        email: String,
-        pass: String,
-        fullName: String,
-        phone: String,
-        role: Int,
-        onSuccess: () -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        auth.createUserWithEmailAndPassword(email, pass)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val firebaseUser = auth.currentUser
-                    if (firebaseUser != null) {
-                        // Khởi tạo User với các trường bổ sung cho Tài xế và Admin
-                        val newUser = User(
-                            uid = firebaseUser.uid,
-                            fullName = fullName,
-                            email = email,
-                            phone = phone,
-                            role = role,
-                            // Nếu là tài xế (role=2) thì để trống thông tin xe để cập nhật sau
-                            carModel = if (role == 2) "" else null,
-                            plateNumber = if (role == 2) "" else null,
-                            isLocked = false // Mặc định tài khoản không bị khóa
-                        )
-
-                        database.reference.child("Users").child(firebaseUser.uid)
-                            .setValue(newUser)
-                            .addOnSuccessListener { onSuccess() }
-                            .addOnFailureListener { e -> onFailure("Lỗi lưu dữ liệu: ${e.message}") }
-                    }
-                } else {
-                    onFailure(task.exception?.message ?: "Lỗi đăng ký tài khoản")
-                }
+    fun registerUser(email: String, pass: String, fullName: String, phone: String, role: Int, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        auth.createUserWithEmailAndPassword(email, pass).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val uid = auth.currentUser?.uid ?: ""
+                val newUser = User(
+                    uid = uid, fullName = fullName, email = email, phone = phone, role = role,
+                    carModel = if (role == 2) "" else null,
+                    plateNumber = if (role == 2) "" else null,
+                    isLocked = false
+                )
+                database.reference.child("Users").child(uid).setValue(newUser)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { onFailure("Lỗi lưu database: ${it.message}") }
+            } else {
+                onFailure(task.exception?.message ?: "Lỗi đăng ký")
             }
-    }
-
-    // 2. HÀM ĐĂNG NHẬP (Giữ nguyên)
-    fun loginUser(email: String, pass: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
-        auth.signInWithEmailAndPassword(email, pass)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) onSuccess()
-                else onFailure(task.exception?.message ?: "Sai email hoặc mật khẩu")
-            }
-    }
-
-    // 3. KIỂM TRA TRẠNG THÁI (Giữ nguyên)
-    fun isUserLoggedIn(): Boolean = auth.currentUser != null
-
-    // 4. ĐĂNG XUẤT (Giữ nguyên)
-    fun logout() = auth.signOut()
-
-    // 5. QUÊN MẬT KHẨU (Gửi email reset)
-    fun resetPassword(email: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
-        if (email.isEmpty()) {
-            onFailure("Vui lòng nhập email")
-            return
         }
-        auth.sendPasswordResetEmail(email)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) onSuccess()
-                else onFailure(task.exception?.message ?: "Lỗi gửi email")
+    }
+
+    fun resetPassword(email: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        if (email.isEmpty()) return onFailure("Vui lòng nhập email")
+        auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
+            if (task.isSuccessful) onSuccess() else onFailure("Email không tồn tại hoặc lỗi mạng")
+        }
+    }
+
+    fun loginUser(email: String, pass: String, onSuccess: (Int) -> Unit, onFailure: (String) -> Unit) {
+        auth.signInWithEmailAndPassword(email, pass).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val uid = auth.currentUser?.uid ?: ""
+                
+                // Sử dụng addListenerForSingleValueEvent thay vì get() để ổn định hơn trên một số thiết bị
+                database.reference.child("Users").child(uid).child("role")
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        if (snapshot.exists()) {
+                            val role = snapshot.getValue(Int::class.java) ?: 3
+                            onSuccess(role)
+                        } else {
+                            // Nếu không tìm thấy role trong DB, ép buộc đăng xuất và báo lỗi
+                            auth.signOut()
+                            onFailure("Tài khoản không tồn tại trên hệ thống dữ liệu. Vui lòng đăng ký lại.")
+                        }
+                    }
+                    .addOnFailureListener {
+                        onFailure("Lỗi kết nối Database: ${it.message}")
+                    }
+            } else {
+                onFailure(task.exception?.message ?: "Sai email hoặc mật khẩu")
             }
+        }
+    }
+
+    fun logout() {
+        auth.signOut()
     }
 }
