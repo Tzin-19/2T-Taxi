@@ -6,6 +6,8 @@ data class User(
     val email: String = "",
     val phone: String = "",
     val role: Int = 3, // 1: Admin, 2: Driver, 3: Passenger
-    val avatarUrl: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val carModel: String? = null,
+    val plateNumber: String? = null,
+    val rating: Double = 5.0,
+    val isLocked: Boolean = false // Dùng cho AdminController
 )
