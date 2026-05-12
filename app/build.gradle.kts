@@ -6,9 +6,8 @@ plugins {
 
 android {
     namespace = "com.example.taxibookingproject"
-    compileSdk {
-        version = release(36)
-    }
+    // Nâng cấp lên 36 để tương thích với các thư viện mới
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.taxibookingproject"
@@ -47,6 +46,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    // Thư viện Icon mở rộng (Đã thêm để sửa lỗi Unresolved reference)
+    implementation("androidx.compose.material:material-icons-extended")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -54,11 +57,15 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
     implementation("com.google.firebase:firebase-analytics")
-    // Thư viện Đăng nhập (Authentication)
     implementation("com.google.firebase:firebase-auth")
-
-    // Thư viện Lưu trữ dữ liệu (Realtime Database)
     implementation("com.google.firebase:firebase-database")
+
+    // Google Maps & Location
+    implementation("com.google.maps.android:maps-compose:8.3.0")
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }
