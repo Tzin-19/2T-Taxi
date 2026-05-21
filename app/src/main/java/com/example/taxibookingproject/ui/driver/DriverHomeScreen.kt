@@ -1,5 +1,11 @@
 package com.example.taxibookingproject.ui.driver
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,9 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import coil.compose.AsyncImage
+import com.example.taxibookingproject.controller.AuthController
+import com.example.taxibookingproject.model.User
+import com.example.taxibookingproject.ui.theme.DeepYellow
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
@@ -26,106 +38,173 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DriverHomeScreen(onLogout: () -> Unit) {
+fun DriverHomeScreen(
+    authController: AuthController,
+    onLogout: () -> Unit,
+    onNavigateToEarnings: () -> Unit,
+    onNewRequest: () -> Unit,
+    onNavigateToProfile: () -> Unit
+) {
+    val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isWorking by remember { mutableStateOf(false) }
-    var autoAccept by remember { mutableStateOf(false) }
+    
+    val uid = authController.getCurrentUserUid() ?: ""
+    var driverData by remember { mutableStateOf<User?>(null) }
 
+    // Tải thông tin tài xế
+    LaunchedEffect(uid) {
+        if (uid.isNotEmpty()) {
+            authController.getUserData(uid, {
+                driverData = it
+            }, {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            })
+        }
+    }
+
+    // Kiểm tra và xin quyền vị trí
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasLocationPermission = isGranted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasLocationPermission) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    
     val hanoi = LatLng(21.0285, 105.8542)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(hanoi, 15f)
     }
 
+    val statusColor by animateColorAsState(
+        targetValue = if (isWorking) DeepYellow else Color.White,
+        label = "statusColor"
+    )
+    val contentColor = Color.Black
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(300.dp)
+                modifier = Modifier.width(300.dp),
+                drawerContainerColor = Color.White
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF2E3137))
-                        .padding(20.dp)
+                        .background(DeepYellow)
+                        .clickable { 
+                            scope.launch { drawerState.close() }
+                            onNavigateToProfile() 
+                        }
+                        .padding(top = 40.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Tài xế Taxi",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Surface(
-                        color = Color(0xFF4CAF50),
-                        shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (driverData?.profileImageUrl.isNullOrEmpty()) {
+                                Icon(Icons.Default.Person, null, tint = Color.Black, modifier = Modifier.size(44.dp))
+                            } else {
+                                AsyncImage(
+                                    model = driverData?.profileImageUrl,
+                                    contentDescription = "Profile Image",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Đã xác thực",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            text = driverData?.fullName ?: "Đối tác Tài xế",
+                            color = Color.Black,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        )
+                        Text(
+                            text = "⭐ ${driverData?.rating ?: 5.0} • Đối tác 5 sao",
+                            color = Color.Black.copy(0.6f),
+                            fontSize = 14.sp
                         )
                     }
                 }
-
-                Column(modifier = Modifier.padding(16.dp)) {
-                    DrawerItemWithSwitch("Trạng thái làm việc", isWorking, Icons.Default.DirectionsCar) { isWorking = it }
-                    DrawerItemWithSwitch("Tự động nhận đơn", autoAccept, Icons.Default.FlashOn) { autoAccept = it }
-                    
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    
-                    DrawerMenuItem(Icons.Default.Wallet, "Ví tiền")
-                    DrawerMenuItem(Icons.Default.History, "Lịch sử chuyến xe")
-                    DrawerMenuItem(Icons.Default.Star, "Đánh giá")
-                    DrawerMenuItem(Icons.Default.Settings, "Cài đặt")
-                    
-                    Spacer(modifier = Modifier.weight(1f))
-                    
-                    DrawerMenuItem(Icons.AutoMirrored.Filled.ExitToApp, "Đăng xuất", color = Color.Red) {
-                        onLogout()
-                    }
-                }
+                Spacer(modifier = Modifier.height(12.dp))
+                DriverDrawerItem(Icons.Default.AccountBalanceWallet, "Ví thu nhập") { onNavigateToEarnings() }
+                DriverDrawerItem(Icons.Default.History, "Lịch sử chuyến xe")
+                DriverDrawerItem(Icons.Default.Notifications, "Thông báo")
+                DriverDrawerItem(Icons.Default.Settings, "Cài đặt")
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                DriverDrawerItem(Icons.AutoMirrored.Filled.ExitToApp, "Đăng xuất", Color.Red) { onLogout() }
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Trang chủ Tài xế") },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color.Black
-                    )
-                )
-            }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
+        Scaffold { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    properties = MapProperties(isMyLocationEnabled = isWorking),
-                    uiSettings = MapUiSettings(zoomControlsEnabled = false)
+                    properties = MapProperties(isMyLocationEnabled = hasLocationPermission && isWorking),
+                    uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = hasLocationPermission)
+                )
+
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .clickable { onNavigateToEarnings() },
+                    shape = RoundedCornerShape(30.dp),
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Payments, null, tint = DeepYellow, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Thu nhập hôm nay", fontSize = 11.sp, color = Color.Gray)
+                            Text("1,250,000đ", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.Black)
+                        }
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { scope.launch { drawerState.open() } },
+                    modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                    shape = CircleShape
+                ) { Icon(Icons.Default.Menu, "Menu") }
+
+                if (isWorking) {
+                    Button(
+                        onClick = onNewRequest,
+                        modifier = Modifier.align(Alignment.Center).padding(bottom = 100.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = DeepYellow, contentColor = Color.Black),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text("Demo: Cuốc xe mới 🔔", fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Card(
@@ -133,35 +212,42 @@ fun DriverHomeScreen(onLogout: () -> Unit) {
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(16.dp),
-                    elevation = CardDefaults.cardElevation(8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (isWorking) Color(0xFF4CAF50) else Color.White)
+                    shape = RoundedCornerShape(28.dp),
+                    elevation = CardDefaults.cardElevation(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = statusColor)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(20.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column {
-                            Text(
-                                text = if (isWorking) "ĐANG TRỰC TUYẾN" else "ĐANG NGOẠI TUYẾN",
-                                fontWeight = FontWeight.Bold,
-                                color = if (isWorking) Color.White else Color.Black
-                            )
-                            Text(
-                                text = if (isWorking) "Sẵn sàng nhận chuyến" else "Bật để bắt đầu làm việc",
-                                fontSize = 12.sp,
-                                color = if (isWorking) Color.White.copy(alpha = 0.8f) else Color.Gray
-                            )
-                        }
+                        Text(
+                            text = if (isWorking) "BẠN ĐANG TRỰC TUYẾN" else "BẠN ĐANG NGOẠI TUYẾN",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = contentColor
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (isWorking) "Sẵn sàng nhận cuốc xe mới" else "Gạt nút bên dưới để bắt đầu làm việc",
+                            fontSize = 14.sp,
+                            color = contentColor.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
                         Switch(
                             checked = isWorking,
-                            onCheckedChange = { isWorking = it },
+                            onCheckedChange = { 
+                                if (!hasLocationPermission && it) {
+                                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                } else {
+                                    isWorking = it 
+                                }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF2E7D32)
+                                checkedTrackColor = Color.Black,
+                                uncheckedTrackColor = Color(0xFFEEEEEE),
+                                uncheckedThumbColor = Color.White
                             )
                         )
                     }
@@ -172,34 +258,16 @@ fun DriverHomeScreen(onLogout: () -> Unit) {
 }
 
 @Composable
-fun DrawerMenuItem(icon: ImageVector, label: String, color: Color = Color.Black, onClick: () -> Unit = {}) {
+fun DriverDrawerItem(icon: ImageVector, label: String, color: Color = Color.Black, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 12.dp),
+            .padding(vertical = 14.dp, horizontal = 24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(text = label, fontSize = 16.sp, color = color)
-        Spacer(modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
-    }
-}
-
-@Composable
-fun DrawerItemWithSwitch(label: String, checked: Boolean, icon: ImageVector, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.Gray)
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(text = label, fontSize = 16.sp)
-        Spacer(modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(20.dp))
+        Text(label, color = color, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
     }
 }

@@ -1,8 +1,10 @@
 package com.example.taxibookingproject.ui.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,6 +22,9 @@ import com.example.taxibookingproject.controller.AuthController
 import com.example.taxibookingproject.ui.components.ErrorText
 import com.example.taxibookingproject.ui.components.TaxiButton
 import com.example.taxibookingproject.ui.components.TaxiTextField
+import com.example.taxibookingproject.ui.theme.DeepYellow
+import com.example.taxibookingproject.ui.theme.MilkyYellow
+import com.example.taxibookingproject.ui.theme.SoftYellow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +33,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onBackToLogin: () -> Unit
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -38,7 +45,7 @@ fun RegisterScreen(
     var agreeTerms by remember { mutableStateOf(false) }
 
     val gradientBrush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFE8F5E9), Color.White)
+        colors = listOf(SoftYellow, Color.White, Color.White)
     )
 
     Box(modifier = Modifier.fillMaxSize().background(gradientBrush)) {
@@ -49,16 +56,23 @@ fun RegisterScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            IconButton(
+                onClick = onBackToLogin,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = Color.Black)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = "Gia nhập cộng đồng ✨",
+                text = "Tạo tài khoản ✨",
                 fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF2E7D32)
+                fontWeight = FontWeight.Black,
+                color = Color.Black
             )
             Text(
-                text = "Chỉ mất 1 phút để bắt đầu hành trình mới",
+                text = "Tham gia cùng đội ngũ Taxi chuyên nghiệp ngay",
                 fontSize = 16.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp)
@@ -69,7 +83,7 @@ fun RegisterScreen(
             TaxiTextField(
                 value = fullName,
                 onValueChange = { fullName = it; errorMessage = "" },
-                label = "Họ và tên của bạn",
+                label = "Họ và tên",
                 leadingIcon = Icons.Default.Person
             )
 
@@ -84,7 +98,7 @@ fun RegisterScreen(
             TaxiTextField(
                 value = email,
                 onValueChange = { email = it; errorMessage = "" },
-                label = "Email",
+                label = "Email đăng ký",
                 leadingIcon = Icons.Default.Email,
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
             )
@@ -105,31 +119,65 @@ fun RegisterScreen(
                 isPassword = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Text("Bạn đăng ký với vai trò:", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text("Bạn muốn đăng ký là:", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Row(modifier = Modifier.padding(vertical = 12.dp)) {
                 FilterChip(
                     selected = selectedRole == 3,
                     onClick = { selectedRole = 3 },
-                    label = { Text("Khách hàng") },
+                    label = { Text("Khách hàng", fontWeight = FontWeight.Bold) },
                     leadingIcon = if (selectedRole == 3) { { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) } } else null,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 12.dp).height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DeepYellow,
+                        selectedLabelColor = Color.Black,
+                        containerColor = Color.White,
+                        labelColor = Color.Gray
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = if (selectedRole == 3) DeepYellow else Color(0xFFEEEEEE),
+                        borderWidth = 1.dp,
+                        enabled = true,
+                        selected = selectedRole == 3
+                    )
                 )
                 FilterChip(
                     selected = selectedRole == 2,
                     onClick = { selectedRole = 2 },
-                    label = { Text("Tài xế") },
-                    leadingIcon = if (selectedRole == 2) { { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) } } else null
+                    label = { Text("Tài xế", fontWeight = FontWeight.Bold) },
+                    leadingIcon = if (selectedRole == 2) { { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) } } else null,
+                    modifier = Modifier.height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DeepYellow,
+                        selectedLabelColor = Color.Black,
+                        containerColor = Color.White,
+                        labelColor = Color.Gray
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = if (selectedRole == 2) DeepYellow else Color(0xFFEEEEEE),
+                        borderWidth = 1.dp,
+                        enabled = true,
+                        selected = selectedRole == 2
+                    )
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = agreeTerms, onCheckedChange = { agreeTerms = it })
+                Checkbox(
+                    checked = agreeTerms, 
+                    onCheckedChange = { agreeTerms = it },
+                    colors = CheckboxDefaults.colors(checkedColor = DeepYellow)
+                )
                 Text(
-                    text = "Tôi đồng ý với Điều khoản và Chính sách",
-                    fontSize = 13.sp,
-                    color = Color.DarkGray
+                    text = "Tôi đồng ý với Điều khoản & Chính sách",
+                    fontSize = 14.sp,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -138,28 +186,29 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             TaxiButton(
-                text = "ĐĂNG KÝ NGAY",
+                text = "ĐĂNG KÝ TÀI KHOẢN",
                 isLoading = isLoading,
-                containerColor = Color(0xFF2E7D32)
+                containerColor = DeepYellow
             ) {
                 when {
                     fullName.isEmpty() || phone.isEmpty() || email.isEmpty() || password.isEmpty() -> {
-                        errorMessage = "📍 Bạn ơi, đừng bỏ trống ô nào nhé!"
+                        errorMessage = "📍 Bạn điền thiếu thông tin mất rồi!"
                     }
                     password != confirmPassword -> {
-                        errorMessage = "📍 Mật khẩu xác nhận không khớp rồi bạn."
+                        errorMessage = "📍 Mật khẩu không khớp, kiểm tra lại nhé."
                     }
                     password.length < 6 -> {
-                        errorMessage = "📍 Mật khẩu phải từ 6 ký tự để bảo mật nhé."
+                        errorMessage = "📍 Mật khẩu cần có ít nhất 6 ký tự nè."
                     }
                     !agreeTerms -> {
-                        errorMessage = "📍 Bạn cần đồng ý với điều khoản để tiếp tục nè."
+                        errorMessage = "📍 Bạn hãy đồng ý với điều khoản để tiếp tục nha."
                     }
                     else -> {
                         isLoading = true
                         authController.registerUser(email, password, fullName, phone, selectedRole,
                             onSuccess = { 
                                 isLoading = false
+                                Toast.makeText(context, "Đăng ký thành công! Đang quay lại đăng nhập...", Toast.LENGTH_LONG).show()
                                 onRegisterSuccess() 
                             },
                             onFailure = { 
@@ -172,13 +221,13 @@ fun RegisterScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 40.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 48.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Đã có tài khoản?", color = Color.Gray)
                 TextButton(onClick = onBackToLogin) {
-                    Text("Đăng nhập", fontWeight = FontWeight.Bold)
+                    Text("Đăng nhập ngay", fontWeight = FontWeight.Black, color = Color.Black)
                 }
             }
         }

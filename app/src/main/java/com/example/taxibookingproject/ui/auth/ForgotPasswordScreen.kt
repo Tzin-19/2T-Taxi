@@ -15,11 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.taxibookingproject.controller.AuthController
-import com.example.taxibookingproject.ui.components.ErrorText
 import com.example.taxibookingproject.ui.components.TaxiButton
 import com.example.taxibookingproject.ui.components.TaxiTextField
+import com.example.taxibookingproject.ui.theme.DeepYellow
+import com.example.taxibookingproject.ui.theme.SoftYellow
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
     authController: AuthController,
@@ -31,7 +31,7 @@ fun ForgotPasswordScreen(
     var isLoading by remember { mutableStateOf(false) }
 
     val gradientBrush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFE3F2FD), Color.White)
+        colors = listOf(SoftYellow, Color.White, Color.White)
     )
 
     Box(modifier = Modifier.fillMaxSize().background(gradientBrush)) {
@@ -43,21 +43,21 @@ fun ForgotPasswordScreen(
         ) {
             IconButton(
                 onClick = onBackToLogin,
-                modifier = Modifier.padding(top = 16.dp, start = 0.dp)
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = Color.Black)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
             
             Text(
                 text = "Quên mật khẩu? 🔑",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.tertiary
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.Black
             )
             Text(
-                text = "Đừng lo, chỉ cần nhập email đăng ký, tụi mình sẽ gửi mã khôi phục cho bạn ngay!",
+                text = "Đừng lo lắng! Nhập email của bạn và tụi mình sẽ gửi hướng dẫn khôi phục ngay.",
                 fontSize = 16.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 12.dp)
@@ -68,9 +68,8 @@ fun ForgotPasswordScreen(
             TaxiTextField(
                 value = email,
                 onValueChange = { email = it; statusMessage = "" },
-                label = "Email của bạn",
-                leadingIcon = Icons.Default.Email,
-                keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+                label = "Email đăng ký của bạn",
+                leadingIcon = Icons.Default.Email
             )
 
             if (statusMessage.isNotEmpty()) {
@@ -79,32 +78,28 @@ fun ForgotPasswordScreen(
                         containerColor = if (isError) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
                     ),
                     modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         text = statusMessage,
-                        color = if (isError) Color.Red else Color(0xFF2E7D32),
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium
+                        color = if (isError) Color(0xFFD32F2F) else Color(0xFF2E7D32),
+                        modifier = Modifier.padding(20.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             TaxiButton(
                 text = "GỬI YÊU CẦU KHÔI PHỤC",
                 isLoading = isLoading,
-                containerColor = MaterialTheme.colorScheme.tertiary
+                containerColor = DeepYellow
             ) {
                 if (email.isEmpty()) {
                     isError = true
-                    statusMessage = "📍 Bạn nhập thiếu email mất rồi!"
-                    return@TaxiButton
-                }
-                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    isError = true
-                    statusMessage = "📍 Email có vẻ sai sai, bạn kiểm tra lại nhé."
+                    statusMessage = "📍 Úi, bạn quên nhập email kìa!"
                     return@TaxiButton
                 }
 
@@ -114,15 +109,12 @@ fun ForgotPasswordScreen(
                     onSuccess = {
                         isLoading = false
                         isError = false
-                        statusMessage = "✨ Tuyệt vời! Bạn kiểm tra email để đặt lại mật khẩu nhé. (Đừng quên check cả mục Spam nha!)"
+                        statusMessage = "✨ Xong rồi! Bạn kiểm tra email để đặt lại mật khẩu nhé."
                     },
                     onFailure = { error ->
                         isLoading = false
                         isError = true
-                        statusMessage = when {
-                            error.contains("user-not-found") -> "📍 Email này chưa có trên hệ thống tụi mình."
-                            else -> "📍 Có lỗi nhỏ xảy ra: $error"
-                        }
+                        statusMessage = "📍 Lỗi rồi: $error"
                     }
                 )
             }

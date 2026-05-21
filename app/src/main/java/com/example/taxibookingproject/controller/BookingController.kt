@@ -4,41 +4,39 @@ import com.example.taxibookingproject.model.Trip
 import com.google.firebase.database.FirebaseDatabase
 
 class BookingController {
-    // Trỏ tới nhánh "Trips" trong Database
-    private val database = FirebaseDatabase.getInstance().reference.child("Trips")
+    // Cập nhật URL Database chính xác để tránh bị ngắt kết nối do sai Region
+    private val database = FirebaseDatabase.getInstance("https://taxibookingapp-58cd8-default-rtdb.asia-southeast1.firebasedatabase.app").reference
 
-    // 1. KHÁCH HÀNG: Tạo chuyến xe mới
-    fun bookTrip(trip: Trip, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
-        // Tạo một ID ngẫu nhiên và duy nhất cho chuyến xe
-        val tripId = database.push().key ?: return
-        val newTrip = trip.copy(tripId = tripId) // Gán ID mới vào dữ liệu chuyến xe
-
-        database.child(tripId).setValue(newTrip)
-            .addOnSuccessListener {
-                onSuccess(tripId) // Trả về ID chuyến xe để Khách theo dõi
-            }
-            .addOnFailureListener { e ->
-                onFailure(e.message ?: "Lỗi khi đặt xe")
+    // Khách hàng đặt chuyến xe
+    fun createTrip(trip: Trip, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val tripId = database.child("Trips").push().key ?: return onFailure("Không thể tạo ID chuyến đi")
+        val newTrip = trip.copy(tripId = tripId)
+        
+        database.child("Trips").child(tripId).setValue(newTrip)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) onSuccess() 
+                else onFailure(task.exception?.message ?: "Lỗi đặt xe")
             }
     }
 
-    // 2. TÀI XẾ: Bấm nút "Nhận cuốc"
+    // Tài xế chấp nhận chuyến xe
     fun acceptTrip(tripId: String, driverId: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
-        // Cập nhật 2 thông tin cùng lúc: ID tài xế và trạng thái chuyến đi
         val updates = mapOf(
             "driverId" to driverId,
             "status" to "ACCEPTED"
         )
-
-        database.child(tripId).updateChildren(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onFailure(e.message ?: "Lỗi khi nhận cuốc") }
+        database.child("Trips").child(tripId).updateChildren(updates)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) onSuccess()
+                else onFailure(task.exception?.message ?: "Lỗi chấp nhận chuyến")
+            }
     }
 
-    // 3. CHUNG: Cập nhật trạng thái chuyến (ON_GOING, COMPLETED, CANCELLED)
-    fun updateTripStatus(tripId: String, status: String, onSuccess: () -> Unit, onFailure: (String) -> Unit) {
-        database.child(tripId).child("status").setValue(status)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { e -> onFailure(e.message ?: "Lỗi cập nhật trạng thái") }
+    // Cập nhật trạng thái chuyến đi
+    fun updateTripStatus(tripId: String, status: String, onSuccess: () -> Unit) {
+        database.child("Trips").child(tripId).child("status").setValue(status)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) onSuccess()
+            }
     }
 }

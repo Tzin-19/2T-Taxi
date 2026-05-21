@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Facebook
+import androidx.compose.material.icons.filled.GTranslate
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,8 @@ import com.example.taxibookingproject.ui.components.ErrorText
 import com.example.taxibookingproject.ui.components.SocialLoginButton
 import com.example.taxibookingproject.ui.components.TaxiButton
 import com.example.taxibookingproject.ui.components.TaxiTextField
+import com.example.taxibookingproject.ui.theme.DeepYellow
+import com.example.taxibookingproject.ui.theme.SoftYellow
 
 @Composable
 fun LoginScreen(
@@ -37,11 +40,10 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(true) }
 
-    // Màu gradient cam vàng năng động cho GenZ
+    // Gradient Vàng sữa -> Trắng sang trọng
     val gradientBrush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFFFE082), Color.White, Color.White)
+        colors = listOf(SoftYellow, Color.White, Color.White)
     )
 
     Box(modifier = Modifier.fillMaxSize().background(gradientBrush)) {
@@ -52,7 +54,7 @@ fun LoginScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(70.dp))
             
             AnimatedVisibility(
                 visible = true,
@@ -60,13 +62,13 @@ fun LoginScreen(
             ) {
                 Column {
                     Text(
-                        text = "Mừng bạn trở lại! ✨",
+                        text = "Chào mừng bạn! 👋",
                         fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF212121)
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black
                     )
                     Text(
-                        text = "Đăng nhập để bắt đầu hành trình của bạn ngay nào.",
+                        text = "Đăng nhập để trải nghiệm dịch vụ Taxi 5 sao cùng chúng tôi",
                         fontSize = 16.sp,
                         color = Color.Gray,
                         modifier = Modifier.padding(top = 8.dp)
@@ -74,12 +76,12 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
             TaxiTextField(
                 value = email,
                 onValueChange = { email = it; errorMessage = "" },
-                label = "Email của bạn",
+                label = "Email hoặc Số điện thoại",
                 leadingIcon = Icons.Default.Email
             )
 
@@ -91,39 +93,24 @@ fun LoginScreen(
                 isPassword = true
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            TextButton(
+                onClick = onGoToForgot,
+                modifier = Modifier.align(Alignment.End)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = rememberMe,
-                        onCheckedChange = { rememberMe = it },
-                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-                    )
-                    Text("Ghi nhớ nhé", fontSize = 14.sp, color = Color.DarkGray)
-                }
-                TextButton(onClick = onGoToForgot) {
-                    Text("Quên mật khẩu?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
+                Text("Quên mật khẩu?", fontWeight = FontWeight.Bold, color = Color.Black)
             }
 
             ErrorText(errorMessage)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             TaxiButton(
                 text = "ĐĂNG NHẬP",
-                isLoading = isLoading
+                isLoading = isLoading,
+                containerColor = DeepYellow
             ) {
                 if (email.isEmpty() || password.isEmpty()) {
-                    errorMessage = "📍 Úi, bạn chưa nhập email hoặc mật khẩu kìa!"
-                    return@TaxiButton
-                }
-                
-                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    errorMessage = "📍 Email này trông hơi lạ, bạn kiểm tra lại nhé."
+                    errorMessage = "📍 Bạn chưa nhập đầy đủ thông tin kìa!"
                     return@TaxiButton
                 }
 
@@ -135,45 +122,40 @@ fun LoginScreen(
                     },
                     onFailure = { 
                         isLoading = false
-                        errorMessage = when {
-                            it.contains("user-not-found") -> "📍 Tài khoản này chưa đăng ký bạn ơi."
-                            it.contains("wrong-password") -> "📍 Mật khẩu chưa đúng rồi, thử xem lại nhé!"
-                            else -> "📍 Có lỗi nhỏ nè: $it"
-                        }
+                        errorMessage = "📍 Thông tin đăng nhập chưa đúng, thử lại nhé!"
                     }
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Social Login - Phổ biến ở các app hiện đại
             Row(verticalAlignment = Alignment.CenterVertically) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
-                Text("hoặc đăng nhập bằng", modifier = Modifier.padding(horizontal = 16.dp), fontSize = 12.sp, color = Color.Gray)
+                Text("hoặc", modifier = Modifier.padding(horizontal = 16.dp), fontSize = 12.sp, color = Color.Gray)
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(modifier = Modifier.weight(1f)) {
-                    SocialLoginButton(text = "Google", icon = Icons.Default.GTranslate) { /* Xử lý sau */ }
+                    SocialLoginButton(text = "Google", icon = Icons.Default.GTranslate) { }
                 }
                 Box(modifier = Modifier.weight(1f)) {
-                    SocialLoginButton(text = "Facebook", icon = Icons.Default.Facebook) { /* Xử lý sau */ }
+                    SocialLoginButton(text = "Facebook", icon = Icons.Default.Facebook) { }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Bạn là người mới?", color = Color.Gray)
+                Text("Chưa có tài khoản?", color = Color.Gray)
                 TextButton(onClick = onGoToRegister) {
-                    Text("Đăng ký ngay thôi", fontWeight = FontWeight.ExtraBold)
+                    Text("Đăng ký ngay", fontWeight = FontWeight.Black, color = Color.Black)
                 }
             }
         }

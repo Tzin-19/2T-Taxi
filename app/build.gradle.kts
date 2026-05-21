@@ -47,8 +47,17 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     
-    // Thư viện Icon mở rộng (Đã thêm để sửa lỗi Unresolved reference)
+    // Navigation Compose
+    implementation(libs.androidx.navigation.compose)
+    
+    // Thư viện Icon mở rộng
     implementation("androidx.compose.material:material-icons-extended")
+
+    // Image Loading (Coil)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Cloudinary SDK
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -63,6 +72,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-messaging")
 
     // Google Maps & Location
     implementation("com.google.maps.android:maps-compose:8.3.0")

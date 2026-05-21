@@ -3,8 +3,8 @@ package com.example.taxibookingproject.controller
 import com.google.firebase.database.FirebaseDatabase
 
 class LocationManager {
-    // Trỏ tới nhánh "DriverLocations" trong Database
-    private val database = FirebaseDatabase.getInstance().reference.child("DriverLocations")
+    // Cập nhật URL chính xác theo yêu cầu của Firebase Region (asia-southeast1)
+    private val database = FirebaseDatabase.getInstance("https://taxibookingapp-58cd8-default-rtdb.asia-southeast1.firebasedatabase.app").reference.child("DriverLocations")
 
     // 1. TÀI XẾ: Cập nhật vị trí liên tục lên bản đồ
     fun updateDriverLocation(driverId: String, lat: Double, lng: Double) {
@@ -21,6 +21,4 @@ class LocationManager {
     fun goOffline(driverId: String) {
         database.child(driverId).removeValue()
     }
-
-    // (Sau này phần quét xe xung quanh cho Khách hàng sẽ dùng GeoFire để tính bán kính phức tạp hơn, tạm thời mình cấu trúc thế này trước).
 }

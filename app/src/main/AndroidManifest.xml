@@ -7,7 +7,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Quyền đọc ảnh cho các phiên bản Android cũ -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Quyền đọc ảnh cho Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
     <application
+        android:name=".TaxiBookingApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -17,7 +23,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TaxiBookingProject">
 
-        <!-- THAY YOUR_API_KEY_HERE BẰNG KEY CỦA BẠN -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="YOUR_API_KEY_HERE" />

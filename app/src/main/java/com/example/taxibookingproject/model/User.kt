@@ -1,5 +1,7 @@
 package com.example.taxibookingproject.model
 
+import com.google.firebase.database.PropertyName
+
 data class User(
     val uid: String = "",
     val fullName: String = "",
@@ -9,5 +11,9 @@ data class User(
     val carModel: String? = null,
     val plateNumber: String? = null,
     val rating: Double = 5.0,
-    val isLocked: Boolean = false // Cực kỳ quan trọng để đồng nhất với AdminController
+    val profileImageUrl: String? = null,
+    
+    @get:PropertyName("isLocked")
+    @set:PropertyName("isLocked")
+    var isLocked: Boolean = false
 )
