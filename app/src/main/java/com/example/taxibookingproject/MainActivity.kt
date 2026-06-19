@@ -9,35 +9,41 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.example.taxibookingproject.controller.AdminController
-import com.example.taxibookingproject.controller.AuthController
-import com.example.taxibookingproject.controller.BookingController
-import com.example.taxibookingproject.controller.LocationManager
+import com.example.taxibookingproject.controller.*
 import com.example.taxibookingproject.navigation.NavGraph
 import com.example.taxibookingproject.ui.theme.TaxiBookingProjectTheme
+import com.google.android.libraries.places.api.Places
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Sử dụng API Key từ manifest hoặc cấu hình
+        val apiKey = "AIzaSyB9pjq8i1-2BmiWOdciM2TSQWycyOsqYBY"
+
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, apiKey)
+        }
+
         setContent {
             TaxiBookingProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     
-                    // Khởi tạo các Controller cần thiết
                     val authController = remember { AuthController() }
                     val adminController = remember { AdminController() }
                     val bookingController = remember { BookingController() }
                     val locationManager = remember { LocationManager() }
+                    val directionsController = remember { DirectionsController() }
 
                     NavGraph(
                         navController = navController,
                         authController = authController,
                         adminController = adminController,
                         bookingController = bookingController,
-                        locationManager = locationManager
+                        locationManager = locationManager,
+                        directionsController = directionsController
                     )
                 }
             }

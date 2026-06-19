@@ -190,22 +190,31 @@ fun RegisterScreen(
                 isLoading = isLoading,
                 containerColor = DeepYellow
             ) {
+                val cleanEmail = email.trim()
+                val cleanPhone = phone.trim()
+                
                 when {
-                    fullName.isEmpty() || phone.isEmpty() || email.isEmpty() || password.isEmpty() -> {
+                    fullName.trim().isEmpty() || cleanPhone.isEmpty() || cleanEmail.isEmpty() || password.isEmpty() -> {
                         errorMessage = "📍 Bạn điền thiếu thông tin mất rồi!"
                     }
-                    password != confirmPassword -> {
-                        errorMessage = "📍 Mật khẩu không khớp, kiểm tra lại nhé."
+                    !cleanEmail.matches("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+".toRegex()) -> {
+                        errorMessage = "📍 Định dạng email đăng ký chưa chính xác."
+                    }
+                    !cleanPhone.matches("0[35789]\\d{8}".toRegex()) -> {
+                        errorMessage = "📍 Số điện thoại phải gồm 10 chữ số (bắt đầu bằng 03, 05, 07, 08, 09)."
                     }
                     password.length < 6 -> {
                         errorMessage = "📍 Mật khẩu cần có ít nhất 6 ký tự nè."
+                    }
+                    password != confirmPassword -> {
+                        errorMessage = "📍 Mật khẩu không khớp, kiểm tra lại nhé."
                     }
                     !agreeTerms -> {
                         errorMessage = "📍 Bạn hãy đồng ý với điều khoản để tiếp tục nha."
                     }
                     else -> {
                         isLoading = true
-                        authController.registerUser(email, password, fullName, phone, selectedRole,
+                        authController.registerUser(cleanEmail, password, fullName.trim(), cleanPhone, selectedRole,
                             onSuccess = { 
                                 isLoading = false
                                 Toast.makeText(context, "Đăng ký thành công! Đang quay lại đăng nhập...", Toast.LENGTH_LONG).show()

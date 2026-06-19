@@ -7,12 +7,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,11 +47,18 @@ fun PassengerProfileScreen(
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isUploading by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+
+    // State cho việc chỉnh sửa
+    var fullName by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
 
     LaunchedEffect(uid) {
         if (uid.isNotEmpty()) {
             authController.getUserData(uid, {
                 user = it
+                fullName = it.fullName
+                phone = it.phone
                 isLoading = false
             }, {
                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -95,6 +106,25 @@ fun PassengerProfileScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (isEditing) {
+                        IconButton(onClick = {
+                            authController.updateUserDetails(uid, fullName, phone, "", "", {
+                                isEditing = false
+                                user = user?.copy(fullName = fullName, phone = phone)
+                                Toast.makeText(context, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show()
+                            }, {
+                                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                            })
+                        }) {
+                            Icon(Icons.Default.Save, contentDescription = "Save")
+                        }
+                    } else {
+                        IconButton(onClick = { isEditing = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DeepYellow)
             )
         }
@@ -106,7 +136,11 @@ fun PassengerProfileScreen(
         } else {
             user?.let { customer ->
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(contentAlignment = Alignment.BottomEnd) {
@@ -144,15 +178,34 @@ fun PassengerProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text(customer.fullName, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("Khách hàng thân thiết", color = Color.Gray, fontWeight = FontWeight.Medium)
+                    
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            label = { Text("Họ tên") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(customer.fullName, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("Khách hàng thân thiết", color = Color.Gray, fontWeight = FontWeight.Medium)
+                    }
                     
                     Spacer(modifier = Modifier.height(32.dp))
                     
-                    ProfileInfoRow("Số điện thoại", customer.phone)
-                    ProfileInfoRow("Email", customer.email)
-                    ProfileInfoRow("Hạng thành viên", "Thành viên Bạc")
-                    ProfileInfoRow("Điểm tích lũy", "500 điểm")
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = { Text("Số điện thoại") },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        )
+                    } else {
+                        ProfileInfoRow("Số điện thoại", customer.phone)
+                        ProfileInfoRow("Email", customer.email)
+                        ProfileInfoRow("Hạng thành viên", "Thành viên Bạc")
+                        ProfileInfoRow("Điểm tích lũy", "500 điểm")
+                    }
                 }
             }
         }

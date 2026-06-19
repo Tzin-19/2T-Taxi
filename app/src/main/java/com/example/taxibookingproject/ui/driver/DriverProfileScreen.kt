@@ -7,12 +7,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,12 +47,22 @@ fun DriverProfileScreen(
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isUploading by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
 
-    // Tải dữ liệu tài xế từ Firebase
+    // Các state cho việc chỉnh sửa
+    var fullName by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var carModel by remember { mutableStateOf("") }
+    var plateNumber by remember { mutableStateOf("") }
+
     LaunchedEffect(uid) {
         if (uid.isNotEmpty()) {
             authController.getUserData(uid, {
                 user = it
+                fullName = it.fullName
+                phone = it.phone
+                carModel = it.carModel ?: ""
+                plateNumber = it.plateNumber ?: ""
                 isLoading = false
             }, {
                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -62,7 +76,6 @@ fun DriverProfileScreen(
     ) { uri: Uri? ->
         uri?.let {
             isUploading = true
-            // Sử dụng Signed Upload dựa trên config trong TaxiBookingApplication
             MediaManager.get().upload(it)
                 .option("folder", "driver_profiles")
                 .callback(object : UploadCallback {
@@ -70,7 +83,6 @@ fun DriverProfileScreen(
                     override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {}
                     override fun onSuccess(requestId: String?, resultData: Map<*, *>?) {
                         val imageUrl = resultData?.get("secure_url") as? String ?: ""
-                        // Lưu URL vào Firebase
                         authController.updateProfileImage(uid, imageUrl, {
                             user = user?.copy(profileImageUrl = imageUrl)
                             isUploading = false
@@ -98,6 +110,25 @@ fun DriverProfileScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (isEditing) {
+                        IconButton(onClick = {
+                            authController.updateUserDetails(uid, fullName, phone, carModel, plateNumber, {
+                                isEditing = false
+                                user = user?.copy(fullName = fullName, phone = phone, carModel = carModel, plateNumber = plateNumber)
+                                Toast.makeText(context, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show()
+                            }, {
+                                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                            })
+                        }) {
+                            Icon(Icons.Default.Save, contentDescription = "Save")
+                        }
+                    } else {
+                        IconButton(onClick = { isEditing = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DeepYellow)
             )
         }
@@ -109,10 +140,13 @@ fun DriverProfileScreen(
         } else {
             user?.let { driver ->
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Phần ảnh đại diện
                     Box(contentAlignment = Alignment.BottomEnd) {
                         if (driver.profileImageUrl.isNullOrEmpty()) {
                             Box(
@@ -139,7 +173,6 @@ fun DriverProfileScreen(
                             }
                         }
 
-                        // Nút đổi ảnh
                         IconButton(
                             onClick = { imagePickerLauncher.launch("image/*") },
                             modifier = Modifier.size(40.dp).clip(CircleShape).background(DeepYellow).border(2.dp, Color.White, CircleShape)
@@ -149,16 +182,46 @@ fun DriverProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text(driver.fullName, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
-                    Text("⭐⭐⭐⭐⭐ 5.0 • Tài xế chính thức", color = DeepYellow, fontWeight = FontWeight.Bold)
+                    
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            label = { Text("Họ tên") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(driver.fullName, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("⭐⭐⭐⭐⭐ 5.0 • Tài xế chính thức", color = DeepYellow, fontWeight = FontWeight.Bold)
+                    }
                     
                     Spacer(modifier = Modifier.height(32.dp))
                     
-                    // Các mục thông tin
-                    ProfileInfoRow("Số điện thoại", driver.phone)
-                    ProfileInfoRow("Email", driver.email)
-                    ProfileInfoRow("Dòng xe", driver.carModel ?: "Chưa cập nhật")
-                    ProfileInfoRow("Biển số xe", driver.plateNumber ?: "Chưa cập nhật")
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = { Text("Số điện thoại") },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        )
+                        OutlinedTextField(
+                            value = carModel,
+                            onValueChange = { carModel = it },
+                            label = { Text("Dòng xe") },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        )
+                        OutlinedTextField(
+                            value = plateNumber,
+                            onValueChange = { plateNumber = it },
+                            label = { Text("Biển số xe") },
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        )
+                    } else {
+                        ProfileInfoRow("Số điện thoại", driver.phone)
+                        ProfileInfoRow("Email", driver.email)
+                        ProfileInfoRow("Dòng xe", driver.carModel ?: "Chưa cập nhật")
+                        ProfileInfoRow("Biển số xe", driver.plateNumber ?: "Chưa cập nhật")
+                    }
                 }
             }
         }

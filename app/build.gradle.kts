@@ -78,4 +78,11 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:8.3.0")
     implementation("com.google.android.gms:play-services-maps:20.0.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    
+    // Google Places API
+    implementation("com.google.android.libraries.places:places:4.1.0")
+
+    // Directions API Support (Retrofit)
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 }

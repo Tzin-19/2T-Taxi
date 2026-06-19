@@ -4,32 +4,63 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.taxibookingproject.controller.AuthController
+import com.example.taxibookingproject.controller.BookingController
+import com.example.taxibookingproject.model.Trip
 import com.example.taxibookingproject.ui.theme.DeepYellow
-import com.example.taxibookingproject.ui.theme.MilkyYellow
 import com.example.taxibookingproject.ui.theme.SoftYellow
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EarningsScreen(onBack: () -> Unit) {
+fun EarningsScreen(
+    authController: AuthController,
+    bookingController: BookingController,
+    onBack: () -> Unit
+) {
+    val uid = authController.getCurrentUserUid() ?: ""
+    var history by remember { mutableStateOf<List<Trip>>(emptyList()) }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Giờ, 1: Ngày, 2: Tháng
+
+    // Lắng nghe dữ liệu lịch sử trực tiếp từ Firebase Realtime Database
+    LaunchedEffect(uid) {
+        if (uid.isNotEmpty()) {
+            bookingController.listenForDriverHistory(uid) { trips ->
+                history = trips
+            }
+        }
+    }
+
+    val totalEarnings = history.sumOf { it.price }
+    val totalKm = history.sumOf { it.distanceValue }
+    
+    val chartData = remember(history, selectedTab) {
+        processChartData(history, selectedTab)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thu nhập của bạn", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("Thu Nhập Cá Nhân", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.Black)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -45,7 +76,7 @@ fun EarningsScreen(onBack: () -> Unit) {
         ) {
             item { Spacer(modifier = Modifier.height(16.dp)) }
 
-            // Tổng quan thu nhập - Thẻ chính màu Vàng
+            // Thẻ tổng quan - Dữ liệu từ Firebase
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -56,66 +87,91 @@ fun EarningsScreen(onBack: () -> Unit) {
                         modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Tổng thu nhập tuần này", color = Color.Black.copy(alpha = 0.6f), fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text("5,450,000đ", color = Color.Black, fontSize = 34.sp, fontWeight = FontWeight.Black)
+                        Text("Tổng thu nhập từ Firebase", color = Color.Black.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("${String.format(Locale.getDefault(), "%,.0f", totalEarnings)}đ", color = Color.Black, fontSize = 34.sp, fontWeight = FontWeight.Black)
                         
                         Spacer(modifier = Modifier.height(28.dp))
                         
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            StatItem("Chuyến đi", "42")
-                            StatItem("Số giờ", "38h")
+                            StatItem("Chuyến đi", "${history.size}")
+                            StatItem("Km tích lũy", String.format(Locale.getDefault(), "%.1f", totalKm))
                             StatItem("Đánh giá", "5.0")
                         }
                     }
                 }
             }
 
-            // Biểu đồ giả lập
             item {
                 Spacer(modifier = Modifier.height(32.dp))
-                Text("Xu hướng thu nhập", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(2.dp)
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = Color.Black
+                        )
+                    }
                 ) {
-                    Row(
-                        modifier = Modifier.padding(24.dp).fillMaxSize(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        listOf(0.4f, 0.7f, 0.9f, 0.5f, 0.8f, 1f, 0.6f).forEach { height ->
-                            Box(
-                                modifier = Modifier
-                                    .width(28.dp)
-                                    .fillMaxHeight(height)
-                                    .background(DeepYellow, RoundedCornerShape(8.dp))
-                            )
+                    val tabs = listOf("Hàng giờ", "Hàng ngày", "Hàng tháng")
+                    tabs.forEachIndexed { index, title ->
+                        Tab(selected = selectedTab == index, onClick = { selectedTab = index }) {
+                            Text(title, modifier = Modifier.padding(vertical = 12.dp), fontWeight = if(selectedTab == index) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 }
             }
 
-            // Lịch sử chuyến xe
+            // Biểu đồ dựa trên dữ liệu thật
             item {
-                Spacer(modifier = Modifier.height(32.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    Text("Lịch sử gần đây", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                    TextButton(onClick = {}) { 
-                        Text("Xem tất cả", color = Color.Gray, fontWeight = FontWeight.Bold) 
+                    if (chartData.isEmpty() || chartData.all { it == 0f }) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Chưa có dữ liệu từ Firebase", color = Color.Gray, fontSize = 12.sp)
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.padding(24.dp).fillMaxSize(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            chartData.forEach { heightFactor ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 4.dp)
+                                        .fillMaxHeight(heightFactor.coerceIn(0.05f, 1f))
+                                        .background(DeepYellow, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                )
+                            }
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            items(5) { index ->
-                EarningHistoryItem()
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+                Text("Lịch sử nhận đơn", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (history.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        Text("Dữ liệu trống", color = Color.Gray)
+                    }
+                }
+            } else {
+                items(history) { trip ->
+                    EarningHistoryItem(trip)
+                }
             }
             
             item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -123,19 +179,61 @@ fun EarningsScreen(onBack: () -> Unit) {
     }
 }
 
+private fun processChartData(history: List<Trip>, tab: Int): List<Float> {
+    if (history.isEmpty()) return emptyList()
+    val calendar = Calendar.getInstance()
+    val now = System.currentTimeMillis()
+    
+    val data = when (tab) {
+        0 -> { // 24h qua
+            val hourly = FloatArray(24)
+            history.forEach { trip ->
+                if (now - trip.timestamp < 24 * 60 * 60 * 1000) {
+                    calendar.timeInMillis = trip.timestamp
+                    hourly[calendar.get(Calendar.HOUR_OF_DAY)] += trip.price.toFloat()
+                }
+            }
+            hourly.toList()
+        }
+        1 -> { // 7 ngày qua
+            val daily = FloatArray(7)
+            history.forEach { trip ->
+                val diffDays = ((now - trip.timestamp) / (24 * 60 * 60 * 1000)).toInt()
+                if (diffDays in 0..6) daily[6 - diffDays] += trip.price.toFloat()
+            }
+            daily.toList()
+        }
+        2 -> { // 12 tháng qua
+            val monthly = FloatArray(12)
+            history.forEach { trip ->
+                calendar.timeInMillis = trip.timestamp
+                if (calendar.get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR)) {
+                    monthly[calendar.get(Calendar.MONTH)] += trip.price.toFloat()
+                }
+            }
+            monthly.toList()
+        }
+        else -> emptyList()
+    }
+    
+    val max = data.maxOrNull() ?: 1f
+    return if (max == 0f) data else data.map { it / max }
+}
+
 @Composable
 fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, color = Color.Black, fontWeight = FontWeight.Black, fontSize = 20.sp)
-        Text(label, color = Color.Black.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = Color.Black, fontWeight = FontWeight.Black, fontSize = 18.sp)
+        Text(label, color = Color.Black.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun EarningHistoryItem() {
+fun EarningHistoryItem(trip: Trip) {
+    val sdf = SimpleDateFormat("HH:mm - dd/MM", Locale.getDefault())
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = Color.White,
         shadowElevation = 1.dp
     ) {
@@ -144,19 +242,18 @@ fun EarningHistoryItem() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(SoftYellow, RoundedCornerShape(12.dp)), 
+                modifier = Modifier.size(40.dp).background(SoftYellow.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.TrendingUp, null, tint = Color.Black)
-            }
+            ) { Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = Color.Black, modifier = Modifier.size(20.dp)) }
+            
             Spacer(modifier = Modifier.width(16.dp))
+            
             Column(modifier = Modifier.weight(1f)) {
-                Text("Chuyến xe #TX1029", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("Hôm nay, 14:30", color = Color.Gray, fontSize = 12.sp)
+                Text(trip.destinationLocation, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${String.format(Locale.getDefault(), "%.1f", trip.distanceValue)} km • ${sdf.format(Date(trip.timestamp))}", color = Color.Gray, fontSize = 11.sp)
             }
-            Text("+45,000đ", fontWeight = FontWeight.Black, color = Color.Black, fontSize = 16.sp)
+            
+            Text("${String.format(Locale.getDefault(), "%,.0f", trip.price)}đ", fontWeight = FontWeight.Black, color = Color.Black)
         }
     }
 }

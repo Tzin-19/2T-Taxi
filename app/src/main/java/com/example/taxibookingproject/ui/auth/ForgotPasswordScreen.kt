@@ -97,15 +97,23 @@ fun ForgotPasswordScreen(
                 isLoading = isLoading,
                 containerColor = DeepYellow
             ) {
-                if (email.isEmpty()) {
+                val input = email.trim()
+                if (input.isEmpty()) {
                     isError = true
                     statusMessage = "📍 Úi, bạn quên nhập email kìa!"
                     return@TaxiButton
                 }
 
+                val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
+                if (!input.matches(emailPattern.toRegex())) {
+                    isError = true
+                    statusMessage = "📍 Định dạng email chưa chính xác nhé."
+                    return@TaxiButton
+                }
+
                 isLoading = true
                 authController.resetPassword(
-                    email = email,
+                    email = input,
                     onSuccess = {
                         isLoading = false
                         isError = false
